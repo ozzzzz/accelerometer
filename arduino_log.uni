@@ -1,0 +1,107 @@
+--- 27.01.2023 Measure how many reads could do arduino without accelerometer
+
+/*
+The circuit constants:
+ UNO SLC = A5 pin
+ UNO SDA = A4 pin
+
+The circuit for accelerometer:
+ VCC: 5V
+ GND: ground
+ SCL: UNO SLC = A5 pin
+ SDA: UNO SDA = A4 pin
+ 
+The circuit for clock:
+ VCC: 5V
+ GND: ground
+ SCL: A2 pin
+ SDA: A1 pin
+
+Resources:
+ - Clock library: https://github.com/NorthernWidget/DS3231
+ */
+
+
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_ADXL345_U.h>
+//#include <DS3231.h>
+
+// Initialize accelerometer
+uint8_t ACCELEROMETER_I2C_ADDRESS = 0x53;
+Adafruit_ADXL345_Unified accel = Adafruit_ADXL345_Unified();
+
+// Initialize button
+const int buttonPin = A0;
+int buttonState = 0;
+
+/* COMMENT CLOCK FOR NOW
+// Initialize clock
+// Clock I2C address: 0x68
+DS3231 rtc;
+bool h12Flag;
+bool pmFlag;
+*/
+
+
+bool timerActivated = false;
+unsigned long savedTime = 0;
+
+int counter = 0;
+
+void setup() {
+  Serial.begin(9600);  
+
+  if(!accel.begin(ACCELEROMETER_I2C_ADDRESS)) {
+    Serial.println("No ADXL345 sensor detected.");
+    while(1);
+  }
+  /* Remove clock
+  rtc.setEpoch(1674773321);
+  */
+}
+
+void loop() {
+  sensors_event_t event; 
+  accel.getEvent(&event);
+  buttonState = digitalRead(buttonPin);
+  
+
+  if (buttonState == HIGH) {
+    if (!timerActivated) {
+      savedTime = millis();
+      timerActivated = true;
+      counter = 0;
+    }
+    counter += 1;
+    
+//    Serial.print("X: "); Serial.print(event.acceleration.x); Serial.print("  ");
+//    Serial.print("Y: "); Serial.print(event.acceleration.y); Serial.print("  ");
+//    Serial.print("Z: "); Serial.print(event.acceleration.z); Serial.print("  ");
+//    Serial.println("m/s^2 ");
+  } else {
+    if (timerActivated) {
+      unsigned long currentTime = millis();
+      unsigned long timeDifference = currentTime - savedTime;
+      timerActivated = false;
+      Serial.println(currentTime);
+      Serial.println(savedTime);
+      Serial.println(currentTime - savedTime);
+      Serial.println(counter);
+      Serial.println(timeDifference / counter); // This is resolution that we can get
+    }
+    
+//    Serial.println("OFF");
+//    DateTime right_now = RTClib::now();
+//    Serial.println(right_now.unixtime());
+    
+//    Serial.print(rtc.getYear()); Serial.print(" ");
+//    Serial.print(rtc.getDate());  Serial.print(" ");
+//    Serial.print(rtc.getHour(h12Flag, pmFlag));  Serial.print(" ");
+//    Serial.print(rtc.getMinute());  Serial.print(" ");
+//    Serial.println(rtc.getSecond());
+  }
+
+   
+   delay(1); // This delay defines the resolution that we can get
+}
